@@ -9,6 +9,33 @@ Ensures context persists across sessions, models, and time. Prevents "starting f
 
 ---
 
+## Quick Start
+
+### Installation
+
+```bash
+# 1. Install the skill
+openclaw skills install https://github.com/loudmouthedmedia/context-bridge
+
+# 2. Run setup to create registry files
+cd ~/.openclaw/workspace/skills/context-bridge/scripts
+./setup.sh
+
+# 3. Update AGENTS.md (see below)
+```
+
+### Setup Script
+
+The `setup.sh` script creates all required registry files:
+- `~/.openclaw/skills-registry.json`
+- `~/.openclaw/cron-registry.json`
+- `~/.openclaw/skills-discovery.json`
+- `~/.openclaw/model-agnostic-memory/model-handoff.md`
+- `~/.openclaw/agents/defaults/session-start-hook.md`
+- `~/.openclaw/scripts/load-context.sh`
+
+---
+
 ## What It Does
 
 **Before Context Bridge:**
