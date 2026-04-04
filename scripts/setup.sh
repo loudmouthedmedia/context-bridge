@@ -13,15 +13,210 @@ mkdir -p ~/.openclaw/model-agnostic-memory
 mkdir -p ~/.openclaw/agents/defaults
 mkdir -p ~/.openclaw/workspace/skills
 mkdir -p ~/.openclaw/scripts
+mkdir -p ~/.openclaw/agents
 
-# Create skills-registry.json if missing
+NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+# ============================================================================
+# SCAN FOR EXISTING SKILLS
+# ============================================================================
+echo ""
+echo "Scanning for existing skills..."
+
+SKILLS_JSON="{}"
+SKILLS_LIST="[]"
+
+# Scan workspace skills
+if [ -d ~/.openclaw/workspace/skills ]; then
+    for skill_dir in ~/.openclaw/workspace/skills/*/; do
+        if [ -d "$skill_dir" ]; then
+            skill_name=$(basename "$skill_dir")
+            skill_file="${skill_dir}SKILL.md"
+            
+            # Extract info from SKILL.md if it exists
+            if [ -f "$skill_file" ]; then
+                # Get first header as name
+                skill_display_name=$(grep -m1 "^# " "$skill_file" 2>/dev/null | sed 's/^# //' || echo "$skill_name")
+                # Get emoji if present
+                skill_emoji=$(grep -o "emoji.*" "$skill_file" 2>/dev/null | head -1 | cut -d'"' -f2 || echo "📦")
+                # Get description from first paragraph
+                skill_desc=$(grep -m1 "^[^#]" "$skill_file" 2>/dev/null | head -1 | sed 's/^[[:space:]]*//' || echo "No description")
+            else
+                skill_display_name="$skill_name"
+                skill_emoji="📦"
+                skill_desc="Local workspace skill"
+            fi
+            
+            # Add to skills JSON
+            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/workspace/skills/$skill_name" '
+                .[$name] = {
+                    "name": $display,
+                    "emoji": $emoji,
+                    "location": $path,
+                    "description": $desc,
+                    "installed": '"$NOW"',
+                    "status": "active"
+                }
+            ')
+            
+            # Add to discovery list
+            SKILLS_LIST=$(echo "$SKILLS_LIST" | jq --arg id "$skill_name" --arg name "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" '
+                . + [{
+                    "id": $id,
+                    "name": $name,
+                    "emoji": $emoji,
+                    "status": "active",
+                    "setupRequired": false,
+                    "description": $desc
+                }]
+            ')
+            
+            echo "  ✓ Found: $skill_emoji $skill_name"
+        fi
+    done
+fi
+
+# Scan system skills
+if [ -d ~/.openclaw/skills ]; then
+    for skill_dir in ~/.openclaw/skills/*/; do
+        if [ -d "$skill_dir" ]; then
+            skill_name=$(basename "$skill_dir")
+            skill_file="${skill_dir}SKILL.md"
+            
+            # Skip if already in workspace
+            if echo "$SKILLS_JSON" | jq -e "has(\"$skill_name\")" >/dev/null 2>&1; then
+                continue
+            fi
+            
+            # Extract info from SKILL.md if it exists
+            if [ -f "$skill_file" ]; then
+                skill_display_name=$(grep -m1 "^# " "$skill_file" 2>/dev/null | sed 's/^# //' || echo "$skill_name")
+                skill_emoji=$(grep -o "emoji.*" "$skill_file" 2>/dev/null | head -1 | cut -d'"' -f2 || echo "📦")
+                skill_desc=$(grep -m1 "^[^#]" "$skill_file" 2>/dev/null | head -1 | sed 's/^[[:space:]]*//' || echo "System skill")
+            else
+                skill_display_name="$skill_name"
+                skill_emoji="📦"
+                skill_desc="System skill"
+            fi
+            
+            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/skills/$skill_name" '
+                .[$name] = {
+                    "name": $display,
+                    "emoji": $emoji,
+                    "location": $path,
+                    "description": $desc,
+                    "installed": '"$NOW"',
+                    "status": "active"
+                }
+            ')
+            
+            SKILLS_LIST=$(echo "$SKILLS_LIST" | jq --arg id "$skill_name" --arg name "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" '
+                . + [{
+                    "id": $id,
+                    "name": $name,
+                    "emoji": $emoji,
+                    "status": "active",
+                    "setupRequired": false,
+                    "description": $desc
+                }]
+            ')
+            
+            echo "  ✓ Found: $skill_emoji $skill_name (system)"
+        fi
+    done
+fi
+
+SKILL_COUNT=$(echo "$SKILLS_JSON" | jq 'length')
+echo "  → Total skills found: $SKILL_COUNT"
+
+# ============================================================================
+# SCAN FOR EXISTING CRONS
+# ============================================================================
+echo ""
+echo "Scanning for existing cron jobs..."
+
+CRONS_JSON="{}"
+CRON_COUNT=0
+
+if command -v openclaw &>/dev/null; then
+    # Get cron list from openclaw if available
+    CRON_LIST=$(openclaw cron list --json 2>/dev/null || echo "[]")
+    
+    if [ "$CRON_LIST" != "[]" ] && [ -n "$CRON_LIST" ]; then
+        CRONS_JSON=$(echo "$CRON_LIST" | jq 'map({(.id // .name): {
+            "schedule": .schedule,
+            "payload": .payload,
+            "enabled": (.enabled // true),
+            "created": (.created // '"$NOW"'),
+            "lastRun": .lastRun
+        }}) | add // {}')
+        CRON_COUNT=$(echo "$CRONS_JSON" | jq 'length')
+    fi
+else
+    echo "  ⚠️ openclaw CLI not available, skipping cron scan"
+fi
+
+echo "  → Total crons found: $CRON_COUNT"
+
+# ============================================================================
+# SCAN FOR EXISTING AGENTS
+# ============================================================================
+echo ""
+echo "Scanning for existing agents..."
+
+AGENTS_JSON="{}"
+AGENT_COUNT=0
+
+if command -v openclaw &>/dev/null; then
+    AGENT_LIST=$(openclaw agents list --json 2>/dev/null || echo "[]")
+    
+    if [ "$AGENT_LIST" != "[]" ] && [ -n "$AGENT_LIST" ]; then
+        AGENTS_JSON=$(echo "$AGENT_LIST" | jq 'map({(.id // .agentId): {
+            "name": (.name // .id),
+            "status": (.status // "active"),
+            "workspace": .workspace,
+            "created": (.created // '"$NOW"')
+        }}) | add // {}')
+        AGENT_COUNT=$(echo "$AGENTS_JSON" | jq 'length')
+    fi
+else
+    echo "  ⚠️ openclaw CLI not available, skipping agent scan"
+fi
+
+# Also check for agent directories directly
+if [ -d ~/.openclaw/agents ]; then
+    for agent_dir in ~/.openclaw/agents/*/; do
+        if [ -d "$agent_dir" ]; then
+            agent_id=$(basename "$agent_dir")
+            if ! echo "$AGENTS_JSON" | jq -e "has(\"$agent_id\")" >/dev/null 2>&1; then
+                AGENTS_JSON=$(echo "$AGENTS_JSON" | jq --arg id "$agent_id" --arg now "$NOW" '
+                    .[$id] = {
+                        "name": $id,
+                        "status": "active",
+                        "discovered": $now
+                    }
+                ')
+                AGENT_COUNT=$((AGENT_COUNT + 1))
+                echo "  ✓ Found agent: $agent_id"
+            fi
+        fi
+    done
+fi
+
+echo "  → Total agents found: $AGENT_COUNT"
+
+# ============================================================================
+# CREATE/UPDATE REGISTRY FILES
+# ============================================================================
+
+# Create skills-registry.json
+echo ""
 echo "Creating skills-registry.json..."
-if [ ! -f ~/.openclaw/skills-registry.json ]; then
-cat > ~/.openclaw/skills-registry.json << 'EOF'
+cat > ~/.openclaw/skills-registry.json << EOF
 {
   "version": "1.0",
-  "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "skills": {},
+  "lastUpdated": "$NOW",
+  "skills": $SKILLS_JSON,
   "missing": {},
   "rules": {
     "beforeCreatingSkill": [
@@ -39,19 +234,15 @@ cat > ~/.openclaw/skills-registry.json << 'EOF'
   }
 }
 EOF
-echo "  ✓ Created skills-registry.json"
-else
-    echo "  ✓ skills-registry.json already exists"
-fi
+echo "  ✓ Created skills-registry.json ($SKILL_COUNT skills)"
 
-# Create cron-registry.json if missing
+# Create cron-registry.json
 echo "Creating cron-registry.json..."
-if [ ! -f ~/.openclaw/cron-registry.json ]; then
-cat > ~/.openclaw/cron-registry.json << 'EOF'
+cat > ~/.openclaw/cron-registry.json << EOF
 {
   "version": "1.0",
-  "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "crons": {},
+  "lastUpdated": "$NOW",
+  "crons": $CRONS_JSON,
   "rules": {
     "beforeCreatingCron": [
       "Check this registry for existing cron with same purpose/name",
@@ -63,20 +254,16 @@ cat > ~/.openclaw/cron-registry.json << 'EOF'
   }
 }
 EOF
-echo "  ✓ Created cron-registry.json"
-else
-    echo "  ✓ cron-registry.json already exists"
-fi
+echo "  ✓ Created cron-registry.json ($CRON_COUNT crons)"
 
-# Create skills-discovery.json if missing
+# Create skills-discovery.json
 echo "Creating skills-discovery.json..."
-if [ ! -f ~/.openclaw/skills-discovery.json ]; then
-cat > ~/.openclaw/skills-discovery.json << 'EOF'
+cat > ~/.openclaw/skills-discovery.json << EOF
 {
   "version": "1.0",
-  "lastUpdated": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "discoveryMethod": "Auto-loaded on session start",
-  "skills": [],
+  "lastUpdated": "$NOW",
+  "discoveryMethod": "Auto-discovered on Context Bridge setup",
+  "skills": $SKILLS_LIST,
   "usageInstructions": {
     "forModels": "On session start, read this file and acknowledge available skills",
     "forUsers": "Say 'what skills do we have' to see current capabilities",
@@ -84,10 +271,7 @@ cat > ~/.openclaw/skills-discovery.json << 'EOF'
   }
 }
 EOF
-echo "  ✓ Created skills-discovery.json"
-else
-    echo "  ✓ skills-discovery.json already exists"
-fi
+echo "  ✓ Created skills-discovery.json ($SKILL_COUNT skills)"
 
 # Create model-handoff.md if missing
 echo "Creating model-handoff.md..."
@@ -217,10 +401,14 @@ fi
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "Registry files initialized."
+echo "📊 Summary:"
+echo "  • Skills registered: $SKILL_COUNT"
+echo "  • Crons registered: $CRON_COUNT"
+echo "  • Agents discovered: $AGENT_COUNT"
+echo ""
+echo "Registry files auto-populated with existing data!"
 echo ""
 echo "Next steps:"
-echo "1. Populate registries with your existing skills/crons"
-echo "2. Update AGENTS.md to require Context Bridge files on startup"
-echo "3. Test with: ~/.openclaw/scripts/load-context.sh"
+echo "1. Update AGENTS.md to require Context Bridge files on startup"
+echo "2. Test manual load: ~/.openclaw/scripts/load-context.sh"
 echo ""

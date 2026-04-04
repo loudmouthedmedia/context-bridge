@@ -26,13 +26,13 @@ cd ~/.openclaw/workspace/skills/context-bridge/scripts
 
 ### Setup Script
 
-The `setup.sh` script creates all required registry files:
-- `~/.openclaw/skills-registry.json`
-- `~/.openclaw/cron-registry.json`
-- `~/.openclaw/skills-discovery.json`
-- `~/.openclaw/model-agnostic-memory/model-handoff.md`
-- `~/.openclaw/agents/defaults/session-start-hook.md`
-- `~/.openclaw/scripts/load-context.sh`
+The `setup.sh` script **auto-discovers and populates** all existing skills, crons, and agents:
+
+1. Scans `~/.openclaw/workspace/skills/` for local skills
+2. Scans `~/.openclaw/skills/` for system skills  
+3. Checks `openclaw cron list` for active cron jobs
+4. Checks `openclaw agents list` and `~/.openclaw/agents/` for agents
+5. Creates and populates all registry files with actual data
 
 ---
 
