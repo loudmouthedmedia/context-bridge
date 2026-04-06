@@ -52,9 +52,9 @@ You: [re-explain everything again]
 **After Context Bridge:**
 ```
 You: /new
-Model C: "📧 gog available, 📈 marketing-mode ready. 
-          Working on Jackpot Nuts. Previous model 
-          (MCP-120B) scheduled a meeting 30 min ago. 
+Model C: "📧 [email-skill] available, 📈 [analytics-skill] ready. 
+          Working on [Your Project]. Previous model 
+          (GPT-X) scheduled a meeting 30 min ago. 
           Ready to continue."
 ```
 
