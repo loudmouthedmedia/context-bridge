@@ -48,13 +48,13 @@ if [ -d ~/.openclaw/workspace/skills ]; then
             fi
             
             # Add to skills JSON
-            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/workspace/skills/$skill_name" '
+            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/workspace/skills/$skill_name" --arg now "$NOW" '
                 .[$name] = {
                     "name": $display,
                     "emoji": $emoji,
                     "location": $path,
                     "description": $desc,
-                    "installed": '"$NOW"',
+                    "installed": $now,
                     "status": "active"
                 }
             ')
@@ -99,13 +99,13 @@ if [ -d ~/.openclaw/skills ]; then
                 skill_desc="System skill"
             fi
             
-            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/skills/$skill_name" '
+            SKILLS_JSON=$(echo "$SKILLS_JSON" | jq --arg name "$skill_name" --arg display "$skill_display_name" --arg emoji "$skill_emoji" --arg desc "$skill_desc" --arg path "~/.openclaw/skills/$skill_name" --arg now "$NOW" '
                 .[$name] = {
                     "name": $display,
                     "emoji": $emoji,
                     "location": $path,
                     "description": $desc,
-                    "installed": '"$NOW"',
+                    "installed": $now,
                     "status": "active"
                 }
             ')
@@ -143,11 +143,11 @@ if command -v openclaw &>/dev/null; then
     CRON_LIST=$(openclaw cron list --json 2>/dev/null || echo "[]")
     
     if [ "$CRON_LIST" != "[]" ] && [ -n "$CRON_LIST" ]; then
-        CRONS_JSON=$(echo "$CRON_LIST" | jq 'map({(.id // .name): {
+        CRONS_JSON=$(echo "$CRON_LIST" | jq --arg now "$NOW" 'map({(.id // .name): {
             "schedule": .schedule,
             "payload": .payload,
             "enabled": (.enabled // true),
-            "created": (.created // '"$NOW"'),
+            "created": (.created // $now),
             "lastRun": .lastRun
         }}) | add // {}')
         CRON_COUNT=$(echo "$CRONS_JSON" | jq 'length')
@@ -171,11 +171,11 @@ if command -v openclaw &>/dev/null; then
     AGENT_LIST=$(openclaw agents list --json 2>/dev/null || echo "[]")
     
     if [ "$AGENT_LIST" != "[]" ] && [ -n "$AGENT_LIST" ]; then
-        AGENTS_JSON=$(echo "$AGENT_LIST" | jq 'map({(.id // .agentId): {
+        AGENTS_JSON=$(echo "$AGENT_LIST" | jq --arg now "$NOW" 'map({(.id // .agentId): {
             "name": (.name // .id),
             "status": (.status // "active"),
             "workspace": .workspace,
-            "created": (.created // '"$NOW"')
+            "created": (.created // $now)
         }}) | add // {}')
         AGENT_COUNT=$(echo "$AGENTS_JSON" | jq 'length')
     fi

@@ -8,5 +8,10 @@
   "license": "MIT",
   "pricing": "free",
   "support_url": "https://github.com/loudmouthedmedia/context-bridge/issues",
-  "homepage": "https://github.com/loudmouthedmedia/context-bridge"
+  "homepage": "https://github.com/loudmouthedmedia/context-bridge",
+  "binaries": {
+    "required": ["jq"],
+    "optional": ["openclaw"],
+    "notes": "setup.sh requires jq for JSON manipulation. openclaw CLI is optional but enables auto-discovery of crons and agents."
+  }
 }

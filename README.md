@@ -5,7 +5,7 @@
 Ensures context persists across sessions, models, and time. Prevents "starting from zero" on every `/new`.
 
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://openclaw.ai)
-[![Version](https://img.shields.io/badge/version-1.0-green)](https://github.com/openclaw/context-bridge)
+[![Version](https://img.shields.io/badge/version-1.0-green)](https://github.com/loudmouthedmedia/context-bridge)
 
 ## Problem It Solves
 
