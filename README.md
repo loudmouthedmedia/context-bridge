@@ -197,3 +197,25 @@ MIT - See LICENSE file
 **Version:** 1.0  
 **Created:** 2026-04-03  
 **Maintained by:** OpenClaw Community
+
+## Download Archives
+
+### For Manual Installation
+
+**TAR.GZ:**
+```bash
+curl -L https://github.com/loudmouthedmedia/context-bridge/releases/download/v1.0.0/context-bridge-1.0.0.tar.gz | tar -xzf -
+```
+
+**ZIP:**
+```bash
+curl -L https://github.com/loudmouthedmedia/context-bridge/releases/download/v1.0.0/context-bridge-1.0.0.zip -o context-bridge.zip
+unzip context-bridge.zip
+```
+
+### For ClawHub Submission
+
+Submit the GitHub repository URL:
+```
+https://github.com/loudmouthedmedia/context-bridge
+```
