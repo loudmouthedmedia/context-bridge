@@ -19,6 +19,56 @@ metadata:
 
 **Never lose project context again.** Context Bridge creates persistent memory across agent sessions, letting you resume complex projects days or weeks later with full context of conversations, decisions, and progress.
 
+## 🧠 How This Works — What You'll Notice
+
+When Context Bridge is properly set up (all Hard Requirements below met), your OpenClaw instance gains **four kinds of memory** that work together:
+
+### 1. Semantic Recall (LanceDB + Hybrid Search)
+
+Before every response, the system searches your past conversations and memory files for relevant context — not by exact keywords, but by **meaning**. If you discussed "database performance issues" last Tuesday and ask about "slow queries" today, it finds that connection even though the words don't match. You'll notice the agent referencing things from days or weeks ago without being reminded.
+
+**What to expect:** More relevant, less repetitive conversations. The agent stops asking you to repeat things you've already told it. Searches blend 70% semantic similarity + 30% keyword matching, with newer memories weighted higher (30-day half-life).
+
+### 2. Auto-Capture (memory-lancedb)
+
+After each response, the system automatically identifies facts worth remembering — preferences, decisions, key details — and stores them in LanceDB as vector embeddings. You don't have to say "remember this" or manually save anything.
+
+**What to expect:** The agent quietly builds up a knowledge base over time. After a few days of use, it knows your preferences, project context, and past decisions without any manual effort.
+
+### 3. Nightly Dreaming (memory-core)
+
+Every night at 3 AM, the system runs a consolidation pass — a "dream" — that reviews recent memories, identifies patterns and themes, and promotes the strongest signals into long-term memory. Think of it as the agent sleeping on what it learned and deciding what matters.
+
+**What to expect:** `DREAMS.md` and `memory/dreaming/` files appear in the workspace. Short-term recall entries get promoted. Occasionally you'll see the agent reference something you discussed days ago that it clearly consolidated.
+
+### 4. Interactive Recall (active-memory)
+
+When you ask a question that needs context, the active-memory sub-agent does a focused search through your memories before the main agent responds. It's like the agent pausing to check its notes before answering.
+
+**What to expect:** Slightly longer first-response time when the agent needs to recall context, but much better-informed answers.
+
+### What You WON'T Notice (But Is Happening)
+
+- **MMR deduplication:** When 5 memories say roughly the same thing, you get one result instead of five redundant ones.
+- **Temporal decay:** Last week's memory about "the server is down" ranks higher than a similar memory from 3 months ago.
+- **Session search:** The system also searches your recent session history, not just saved memory files.
+
+### Cold Start
+
+LanceDB starts **empty**. After installation, the system only captures new memories going forward. Old conversations in SQLite/BM25 are still searched via the hybrid pipeline, but won't appear in vector results until they're re-encountered. Expect 1–3 days of use before the agent starts showing noticeably better recall.
+
+### The One Cosmetic Warning You Can Ignore
+
+After setup, you'll see this warning on every gateway restart:
+
+```
+plugins.entries.memory-core: plugin disabled (memory slot set to "memory-lancedb") but config is present
+```
+
+**This is fine.** Memory-core still runs dreaming and other features — it just doesn't own the memory slot anymore (LanceDB does). The warning is cosmetic and will be silenced in a future OpenClaw update.
+
+---
+
 ## ⛔ Hard Requirements — Advanced Memory System
 
 Context Bridge depends on **semantic vector search**, not just keyword matching. Without these components, the skill degrades to basic BM25 keyword search and CANNOT do semantic recall.
