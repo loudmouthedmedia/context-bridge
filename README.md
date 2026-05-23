@@ -53,6 +53,7 @@ openclaw hooks enable context-bridge-autosave
 **Decision tracking**: "What did we decide about the API design?"  
 **Knowledge building**: Aggregate related work into knowledge base  
 **Team handoffs**: Export contexts for documentation  
+**Public signal memory**: Pair with [TweetClaw](https://github.com/Xquik-dev/tweetclaw) to retain reviewed X/Twitter launch, market, support, or community signals. See [the TweetClaw workflow recipe](examples/tweetclaw-public-signal-memory.md).
 
 ## Core Features
 
